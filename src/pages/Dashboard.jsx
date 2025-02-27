@@ -106,13 +106,6 @@ function Dashboard() {
     aggregateHistoricalData(updatedTrades);
   };
 
-  // Hard Reset for testing
-  const handleHardReset = () => {
-    localStorage.removeItem("tradeSettings");
-    localStorage.removeItem("tradesLogged");
-    window.location.reload();
-  };
-
   if (!settings) {
     return <p className="text-center py-8">Loading settings...</p>;
   }
@@ -222,16 +215,6 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-gray-100 to-gray-200 p-8">
-      {/* Hard Reset button */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleHardReset}
-          className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded"
-        >
-          Hard Reset
-        </button>
-      </div>
-
       <h1 className="text-5xl font-bold text-center text-gray-800 mb-10">
         Trading Dashboard
       </h1>
