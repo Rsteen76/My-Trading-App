@@ -1,12 +1,10 @@
 import React from "react";
 
-function TrackerSection({
-  tradesToday,
-  onTradeOutcome,
-  onNextDay,
-}) {
-  // Check if all trades for the day have been recorded
-  const allTradesCompleted = tradesToday.every((t) => t !== null);
+function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
+  if (!settings) return null;
+
+  // Find the first incomplete trade
+  const firstIncompleteTradeIndex = tradesToday.findIndex((trade) => trade === null);
 
   return (
     <div className="max-w-5xl mx-auto bg-white text-gray-900 rounded-lg shadow-lg p-6 mb-10">
@@ -20,12 +18,14 @@ function TrackerSection({
                 <button
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
                   onClick={() => onTradeOutcome(idx, "win")}
+                  disabled={idx !== firstIncompleteTradeIndex}
                 >
                   Win
                 </button>
                 <button
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
                   onClick={() => onTradeOutcome(idx, "loss")}
+                  disabled={idx !== firstIncompleteTradeIndex}
                 >
                   Loss
                 </button>
@@ -41,8 +41,27 @@ function TrackerSection({
             )}
           </div>
         ))}
+        {settings.mode === "fixedStop" && firstIncompleteTradeIndex === -1 && (
+          <div className="flex justify-between items-center border-b pb-2">
+            <span className="text-lg font-medium">Trade {tradesToday.length + 1}</span>
+            <div className="flex gap-4">
+              <button
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                onClick={() => onTradeOutcome(tradesToday.length, "win")}
+              >
+                Win
+              </button>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                onClick={() => onTradeOutcome(tradesToday.length, "loss")}
+              >
+                Loss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-      {allTradesCompleted && (
+      {firstIncompleteTradeIndex === -1 && (
         <div className="mt-6 flex justify-center">
           <button
             onClick={onNextDay}

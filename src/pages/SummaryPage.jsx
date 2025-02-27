@@ -13,7 +13,7 @@ function SummaryPage() {
   const [historicalData, setHistoricalData] = useState([]);
   const [settings, setSettings] = useState(null);
 
-  // Load settings and historical trade logs on mount
+  // Load settings and trade logs on mount
   useEffect(() => {
     const storedSettings = JSON.parse(localStorage.getItem("tradeSettings"));
     if (storedSettings) {
@@ -22,25 +22,31 @@ function SummaryPage() {
       });
     }
     const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+    console.log("Loaded trade logs:", storedTrades);
     aggregateHistoricalData(storedTrades);
   }, []);
 
   // Aggregate historical trade data by day.
-  // Assumes each trade log has at least: { day, oldBalance, newBalance }
+  // Each trade must have { day, oldBalance, newBalance }.
   const aggregateHistoricalData = (trades) => {
     const dayMap = {};
     trades.forEach((trade) => {
+      if (!trade.day) {
+        console.warn("Trade missing day property:", trade);
+        return;
+      }
       const day = trade.day;
       if (!dayMap[day]) {
         dayMap[day] = { day, profit: 0, finalBalance: 0 };
       }
       // Profit per trade: newBalance - oldBalance
-      const profit = trade.newBalance - trade.oldBalance;
+      const profit = Number(trade.newBalance) - Number(trade.oldBalance);
       dayMap[day].profit += profit;
-      // We'll use the newBalance from the last trade as the day's final balance
-      dayMap[day].finalBalance = trade.newBalance;
+      // Assume the last trade of the day provides the final balance
+      dayMap[day].finalBalance = Number(trade.newBalance);
     });
     const daysArray = Object.values(dayMap).sort((a, b) => a.day - b.day);
+    console.log("Aggregated historical data:", daysArray);
     setHistoricalData(daysArray);
   };
 
@@ -51,23 +57,33 @@ function SummaryPage() {
       </h1>
 
       {/* Historical Profit Chart Card */}
-      <div className="max-w-5xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6 mb-10">
+      <div className="max-w-5xl mx-auto bg-white text-gray-900 rounded-lg shadow-xl p-6 mb-10">
         <h2 className="text-3xl font-bold mb-6 text-center">
           Historical Profit
         </h2>
         {historicalData.length === 0 ? (
-          <p className="text-center text-gray-300">No historical data available.</p>
+          <p className="text-center text-gray-600">
+            No historical data available.
+          </p>
         ) : (
-          <div className="w-full h-64">
+          <div className="w-full h-64 overflow-x-auto">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={historicalData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="day"
-                  label={{ value: "Day", position: "insideBottom", offset: -5 }}
+                  label={{
+                    value: "Day",
+                    position: "insideBottom",
+                    offset: -5,
+                  }}
                 />
                 <YAxis
-                  label={{ value: "Profit", angle: -90, position: "insideLeft" }}
+                  label={{
+                    value: "Profit",
+                    angle: -90,
+                    position: "insideLeft",
+                  }}
                 />
                 <Tooltip />
                 <Line
@@ -83,24 +99,24 @@ function SummaryPage() {
         )}
       </div>
 
-      {/* Historical Data Table Card */}
-      <div className="max-w-5xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
-        <h2 className="text-3xl font-bold mb-6 text-center">
-          Daily Performance
-        </h2>
+      {/* Daily Performance Table Card */}
+      <div className="max-w-5xl mx-auto bg-white text-gray-900 rounded-lg shadow-xl p-6">
+        <h2 className="text-3xl font-bold mb-6 text-center">Daily Performance</h2>
         {historicalData.length === 0 ? (
-          <p className="text-center text-gray-300">No historical data available.</p>
+          <p className="text-center text-gray-600">
+            No historical data available.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-gray-700">
+              <thead className="bg-gray-300">
                 <tr>
                   <th className="px-4 py-2">Day</th>
                   <th className="px-4 py-2">Profit</th>
                   <th className="px-4 py-2">Final Balance</th>
                 </tr>
               </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-700">
+              <tbody className="bg-white divide-y divide-gray-300">
                 {historicalData.map((row) => (
                   <tr key={row.day}>
                     <td className="px-4 py-2">{row.day}</td>
