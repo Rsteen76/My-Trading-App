@@ -1,74 +1,106 @@
 import React from "react";
 
 function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
-  if (!settings) return null;
-
-  // Find the first incomplete trade
-  const firstIncompleteTradeIndex = tradesToday.findIndex((trade) => trade === null);
-
   return (
-    <div className="max-w-5xl mx-auto bg-white text-gray-900 rounded-lg shadow-lg p-6 mb-10">
-      <h2 className="text-3xl font-bold mb-6 text-center">Today's Trades</h2>
-      <div className="space-y-4">
-        {tradesToday.map((trade, idx) => (
-          <div key={idx} className="flex justify-between items-center border-b pb-2">
-            <span className="text-lg font-medium">Trade {idx + 1}</span>
-            {trade === null ? (
-              <div className="flex gap-4">
-                <button
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                  onClick={() => onTradeOutcome(idx, "win")}
-                  disabled={idx !== firstIncompleteTradeIndex}
-                >
-                  Win
-                </button>
-                <button
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-                  onClick={() => onTradeOutcome(idx, "loss")}
-                  disabled={idx !== firstIncompleteTradeIndex}
-                >
-                  Loss
-                </button>
-              </div>
-            ) : (
-              <span className="font-semibold text-lg">
-                {trade.outcome === "win"
-                  ? `Win (+$${trade.profit ? trade.profit.toFixed(2) : "0.00"})`
-                  : trade.outcome === "loss"
-                  ? `Loss (-$${trade.loss ? trade.loss.toFixed(2) : "0.00"})`
-                  : trade.note}
-              </span>
-            )}
-          </div>
-        ))}
-        {settings.mode === "fixedStop" && firstIncompleteTradeIndex === -1 && (
-          <div className="flex justify-between items-center border-b pb-2">
-            <span className="text-lg font-medium">Trade {tradesToday.length + 1}</span>
-            <div className="flex gap-4">
-              <button
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                onClick={() => onTradeOutcome(tradesToday.length, "win")}
-              >
-                Win
-              </button>
-              <button
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-                onClick={() => onTradeOutcome(tradesToday.length, "loss")}
-              >
-                Loss
-              </button>
-            </div>
-          </div>
-        )}
+    <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Today's Trades</h2>
+        <button
+          onClick={onNextDay}
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-bold"
+        >
+          Next Day
+        </button>
       </div>
-      {firstIncompleteTradeIndex === -1 && (
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={onNextDay}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded transition"
-          >
-            Next Day
-          </button>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white">
+          <thead>
+            <tr className="bg-gray-100 border-b">
+              <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700 w-24">#</th>
+              <th className="py-3 px-4 text-left font-semibold text-sm text-gray-700">Outcome</th>
+              <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700">P/L</th>
+              <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tradesToday.map((trade, index) => (
+              <tr key={index} className="border-b hover:bg-gray-50">
+                <td className="py-3 px-4 text-center">
+                  <span className="inline-block bg-gray-200 text-gray-800 font-bold rounded-full w-8 h-8 flex items-center justify-center">
+                    {index + 1}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  {trade !== null && (
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                      trade.outcome === "win" 
+                        ? "bg-green-100 text-green-800" 
+                        : trade.outcome === "breakEven"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }`}>
+                      {trade.outcome === "win" 
+                        ? "Win" 
+                        : trade.outcome === "breakEven"
+                          ? "Break Even"
+                          : "Loss"}
+                    </span>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-center">
+                  {trade !== null && (
+                    <span className={`font-medium ${
+                      trade.outcome === "win" 
+                        ? "text-green-600" 
+                        : trade.outcome === "breakEven"
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                    }`}>
+                      {trade.outcome === "win" 
+                        ? `+$${trade.profit}` 
+                        : trade.outcome === "breakEven"
+                          ? "$0.00"
+                          : `-$${trade.loss}`}
+                    </span>
+                  )}
+                  {trade?.note && (
+                    <p className="text-xs text-gray-500 mt-1 text-center">{trade.note}</p>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-center">
+                  {trade === null && (
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        onClick={() => onTradeOutcome(index, "win")}
+                        className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm"
+                      >
+                        Win
+                      </button>
+                      <button
+                        onClick={() => onTradeOutcome(index, "loss")}
+                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm"
+                      >
+                        Loss
+                      </button>
+                      <button
+                        onClick={() => onTradeOutcome(index, "breakEven")}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
+                      >
+                        B/E
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {tradesToday.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No trades available for today.
         </div>
       )}
     </div>
