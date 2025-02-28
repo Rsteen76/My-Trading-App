@@ -112,6 +112,7 @@ function Dashboard() {
       totalProfit,
       averageProfit,
       totalTrades,
+      lossTrades: trades.filter(t => t.outcome === "loss").length,
       breakEvenTrades,
       totalDays,
     });
