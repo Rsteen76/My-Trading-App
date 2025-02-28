@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Helper function to check if a path is active
   const isActive = (path) => {
@@ -16,7 +17,11 @@ function Navbar() {
       localStorage.removeItem("tradesLogged");
       localStorage.removeItem("tradeSettings");
       localStorage.removeItem("tradingRules");
-      localStorage.removeItem("rulesCheckedStatus"); // Also clear this if you're using it
+      localStorage.removeItem("rulesCheckedStatus");
+      localStorage.removeItem("tradingHistory");
+      localStorage.removeItem("currentBalance");
+      localStorage.removeItem("initialBalance");
+      localStorage.removeItem("traderSettings");
       
       // Navigate to Planner page after resetting
       navigate("/planner");
@@ -28,57 +33,139 @@ function Navbar() {
     }
   };
 
+  // Close mobile menu when a link is clicked
+  const handleLinkClick = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
-    <nav className="bg-gray-900 text-white py-4 shadow">
-      <div className="max-w-7xl mx-auto px-4 flex items-center gap-4">
-        {/* Left: Brand/Logo */}
-        <div className="flex-1">
+    <nav className="bg-gray-900 text-white py-3 shadow">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-4">
+          {/* Left: Brand/Logo */}
+          <div className="flex-1">
+            <Link 
+              to="/" 
+              className="text-xl lg:text-2xl font-bold hover:text-gray-300 transition"
+            >
+              My Trading App
+            </Link>
+          </div>
+
+          {/* Center: Navigation Links */}
+          <div className="flex-1 flex justify-center gap-6 lg:gap-8">
+            <Link 
+              to="/" 
+              className={`${isActive("/") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+            >
+              Dashboard
+            </Link>
+            <Link 
+              to="/planner" 
+              className={`${isActive("/planner") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+            >
+              Planner
+            </Link>
+            <Link 
+              to="/rules" 
+              className={`${isActive("/rules") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+            >
+              Rules
+            </Link>
+            <Link 
+              to="/summary" 
+              className={`${isActive("/summary") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+            >
+              Summary
+            </Link>
+          </div>
+
+          {/* Right: Reset Button */}
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={handleReset}
+              className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded transition"
+              aria-label="Reset all data"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden flex items-center justify-between">
+          {/* Mobile Logo */}
           <Link 
             to="/" 
-            className="text-2xl font-bold hover:underline"
+            className="text-xl font-bold hover:text-gray-300 transition"
+            onClick={handleLinkClick}
           >
             My Trading App
           </Link>
-        </div>
 
-        {/* Center: Navigation Links */}
-        <div className="flex-1 flex justify-center gap-8">
-          <Link 
-            to="/" 
-            className={isActive("/") ? "underline" : "hover:underline"}
-          >
-            Dashboard
-          </Link>
-          <Link 
-            to="/planner" 
-            className={isActive("/planner") ? "underline" : "hover:underline"}
-          >
-            Planner
-          </Link>
-          <Link 
-            to="/rules" 
-            className={isActive("/rules") ? "underline" : "hover:underline"}
-          >
-            Rules
-          </Link>
-          <Link 
-            to="/summary" 
-            className={isActive("/summary") ? "underline" : "hover:underline"}
-          >
-            Summary
-          </Link>
-        </div>
-
-        {/* Right: Reset Button */}
-        <div className="flex-1 flex justify-end">
+          {/* Mobile Menu Button */}
           <button
-            onClick={handleReset}
-            className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition"
-            aria-label="Reset all data"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 focus:outline-none"
+            aria-label="Toggle menu"
           >
-            Reset
+            {isMenuOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
           </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-3 py-2 border-t border-gray-700">
+            <div className="flex flex-col space-y-3">
+              <Link 
+                to="/" 
+                className={`py-2 px-1 ${isActive("/") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+                onClick={handleLinkClick}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                to="/planner" 
+                className={`py-2 px-1 ${isActive("/planner") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+                onClick={handleLinkClick}
+              >
+                Planner
+              </Link>
+              <Link 
+                to="/rules" 
+                className={`py-2 px-1 ${isActive("/rules") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+                onClick={handleLinkClick}
+              >
+                Rules
+              </Link>
+              <Link 
+                to="/summary" 
+                className={`py-2 px-1 ${isActive("/summary") ? "text-blue-400" : "hover:text-gray-300"} transition`}
+                onClick={handleLinkClick}
+              >
+                Summary
+              </Link>
+              <div className="pt-2 border-t border-gray-700">
+                <button
+                  onClick={handleReset}
+                  className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded w-full transition"
+                  aria-label="Reset all data"
+                >
+                  Reset All Data
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
