@@ -5,14 +5,21 @@ function Navbar() {
   const navigate = useNavigate();
 
   const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset all trade history?")) {
+    if (window.confirm("Are you sure you want to reset ALL app data? This will clear your trade history and settings.")) {
+      // Clear all app-related data from localStorage
       localStorage.removeItem("tradesLogged");
-      alert("Trade history has been cleared.");
-      // Optionally clear other keys if needed:
-      // localStorage.removeItem("tradeSettings");
-
-      // Navigate to Dashboard after resetting
-      navigate("/dashboard");
+      localStorage.removeItem("tradeSettings");
+      
+      // You can add any other app-specific localStorage keys here
+      // For example:
+      // localStorage.removeItem("userPreferences");
+      // localStorage.removeItem("customIndicators");
+      
+      // Navigate to Planner page after resetting so user can set up new settings
+      navigate("/planner");
+      
+      // Force page reload to ensure all components re-initialize with fresh state
+      window.location.reload();
     }
   };
 

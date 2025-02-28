@@ -228,6 +228,18 @@ function Dashboard() {
         isFixedStop={settings.mode === "fixedStop"}
       />
 
+      {settings.mode === "fixedStop" && stopLossRemaining <= 0 && (
+        <div className="text-center text-red-500 font-bold text-2xl mb-4">
+          YOU ARE DONE FOR THE DAY
+        </div>
+      )}
+
+      {settings.mode !== "fixedStop" && tradesToday.filter(trade => trade !== null).length >= settings.tradesPerDay && (
+        <div className="text-center text-red-500 font-bold text-2xl mb-4">
+          YOU ARE DONE FOR THE DAY
+        </div>
+      )}
+
       <TrackerSection
         tradesToday={tradesToday}
         onTradeOutcome={handleTradeOutcome}

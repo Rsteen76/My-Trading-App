@@ -6,54 +6,52 @@ function PlannerStatsCard({ settings }) {
   if (!settings) return null;
 
   return (
-    <div className="bg-white text-gray-900 rounded-lg shadow p-4 mt-8">
+    <div className="bg-white text-gray-900 rounded-lg shadow-xl p-4 mt-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Planner Stats</h2>
+        <h2 className="text-lg font-bold">Planner Stats</h2>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-blue-500 hover:text-blue-700"
+          className="text-blue-500 hover:text-blue-700 text-sm"
         >
           {isCollapsed ? "Expand" : "Collapse"}
         </button>
       </div>
       {!isCollapsed && (
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div>
-            <p className="font-medium">Mode:</p>
-            <p>{settings.mode}</p>
-          </div>
-          <div>
-            <p className="font-medium">Trades Per Day:</p>
-            <p>{settings.tradesPerDay || "N/A"}</p>
-          </div>
-          <div>
-            <p className="font-medium">Daily Loss Limit:</p>
-            <p>{settings.fixedStopLoss || "N/A"}</p>
-          </div>
-          <div>
-            <p className="font-medium">Win Rate (%):</p>
-            <p>{settings.winRate}</p>
-          </div>
-          <div>
-            <p className="font-medium">Risk % (of Account):</p>
-            <p>{settings.riskPercent}</p>
-          </div>
-          <div>
-            <p className="font-medium">Stop Loss Points:</p>
-            <p>{settings.stopLossPoints}</p>
-          </div>
-          <div>
-            <p className="font-medium">Target (Points):</p>
-            <p>{settings.target}</p>
-          </div>
-          <div>
-            <p className="font-medium">Dollar Value of Points:</p>
-            <p>{settings.dollarValueOfPoints}</p>
-          </div>
-          <div>
-            <p className="font-medium">Initial Account Balance:</p>
-            <p>{settings.initialBalance}</p>
-          </div>
+        <div className="mt-3">
+          <table className="w-full text-xs border-t border-b border-gray-300">
+            <tbody className="divide-y divide-gray-300">
+              <tr>
+                <td className="py-1 font-medium text-gray-600 pr-1">Mode:</td>
+                <td className="py-1 text-right pr-4">{settings.mode}</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">Trades/Day:</td>
+                <td className="py-1 text-right pr-4">{settings.tradesPerDay || "N/A"}</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">Win Rate:</td>
+                <td className="py-1 text-right">{settings.winRate}%</td>
+              </tr>
+              <tr>
+                <td className="py-1 font-medium text-gray-600 pr-1">Risk:</td>
+                <td className="py-1 text-right pr-4">{settings.riskPercent}%</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">SL Points:</td>
+                <td className="py-1 text-right pr-4">{settings.stopLossPoints}</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">Target:</td>
+                <td className="py-1 text-right">{settings.target} pts</td>
+              </tr>
+              <tr>
+                <td className="py-1 font-medium text-gray-600 pr-1">$ Per Point:</td>
+                <td className="py-1 text-right pr-4">${settings.dollarValueOfPoints}</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">Loss Limit:</td>
+                <td className="py-1 text-right pr-4">{settings.fixedStopLoss || "N/A"}</td>
+                
+                <td className="py-1 border-l border-gray-400 shadow-sm pl-4 font-medium text-gray-600 pr-1">Initial Balance:</td>
+                <td className="py-1 text-right">${settings.initialBalance}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
     </div>

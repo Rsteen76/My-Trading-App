@@ -2,7 +2,7 @@ import React from "react";
 
 function SummaryStatsCard({ summaryStats }) {
   return (
-    <div className="bg-white text-gray-900 rounded-lg shadow-xl p-6">
+    <div className="bg-white text-gray-900 rounded-lg shadow-xl p-4">
       <h2 className="text-3xl font-bold mb-6 text-center">Summary Stats</h2>
       {summaryStats ? (
         <div className="space-y-3 text-lg">
