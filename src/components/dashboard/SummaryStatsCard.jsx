@@ -4,7 +4,6 @@ import React, { useState, useRef } from "react";
 
 function SummaryStatsCard({ summaryStats }) {
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded by default
-  const scrollContainerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -75,18 +74,6 @@ function SummaryStatsCard({ summaryStats }) {
   const goToPage = (pageNum) => {
     if (pageNum >= 0 && pageNum < totalPages) {
       setCurrentPage(pageNum);
-      
-      if (scrollContainerRef.current) {
-        // Calculate the scroll position based on the page number
-        const cardWidth = scrollContainerRef.current.clientWidth / 2; // Each card takes up half the width
-        const gapWidth = 16; // 4 in Tailwind equals 16px
-        const scrollPosition = pageNum * (cardWidth * 2 + gapWidth);
-        
-        scrollContainerRef.current.scrollTo({
-          left: scrollPosition,
-          behavior: 'smooth'
-        });
-      }
     }
   };
 
@@ -192,35 +179,38 @@ function SummaryStatsCard({ summaryStats }) {
           </div>
         </>
       ) : (
-        /* Collapsed view with exactly 2 cards visible */
+        /* Collapsed view with navigation below cards */
         <div className="mt-4">
-          {/* Scrollable container with 2 cards visible */}
-          <div className="relative overflow-hidden">
-            <div 
-              ref={scrollContainerRef}
-              className="grid grid-cols-2 gap-4 overflow-hidden"
-              style={{ scrollSnapType: 'x mandatory' }}
-            >
-              {allStats.map((stat, index) => (
-                <div 
-                  key={index} 
-                  className="scroll-snap-align-start"
-                  style={{ 
-                    scrollSnapAlign: 'start',
-                    display: Math.floor(index/2) === currentPage ? 'block' : 'none'
-                  }}
-                >
-                  <StatItem 
-                    label={stat.label}
-                    value={stat.value}
-                    textColor={stat.textColor}
-                  />
-                </div>
-              ))}
-            </div>
+          {/* Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {allStats.slice(currentPage * 2, currentPage * 2 + 2).map((stat, index) => (
+              <StatItem 
+                key={currentPage * 2 + index}
+                label={stat.label}
+                value={stat.value}
+                textColor={stat.textColor}
+              />
+            ))}
+          </div>
+          
+          {/* Navigation controls below cards */}
+          <div className="flex items-center justify-center mt-3 space-x-2">
+            {/* Left arrow - only show if not on first page */}
+            {currentPage > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPage(currentPage - 1);
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Previous page"
+              >
+                ◀
+              </button>
+            )}
             
-            {/* Navigation dots */}
-            <div className="flex justify-center mt-4 space-x-2">
+            {/* Page indicator dots */}
+            <div className="flex space-x-1">
               {Array.from({ length: totalPages }).map((_, index) => (
                 <button
                   key={index}
@@ -229,44 +219,26 @@ function SummaryStatsCard({ summaryStats }) {
                     goToPage(index);
                   }}
                   className={`h-2 w-2 rounded-full ${
-                    currentPage === index ? 'bg-blue-600' : 'bg-gray-300'
+                    currentPage === index ? 'bg-blue-600' : 'bg-gray-300 hover:bg-gray-400'
                   }`}
-                  aria-label={`Page ${index + 1}`}
+                  aria-label={`Go to page ${index + 1}`}
                 />
               ))}
             </div>
             
-            {/* Navigation buttons */}
-            <div className="flex justify-between mt-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToPage(currentPage - 1);
-                }}
-                disabled={currentPage === 0}
-                className={`text-sm px-2 py-1 rounded ${
-                  currentPage === 0 
-                    ? 'text-gray-400 cursor-not-allowed' 
-                    : 'text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                Previous
-              </button>
+            {/* Right arrow - only show if not on last page */}
+            {currentPage < totalPages - 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   goToPage(currentPage + 1);
                 }}
-                disabled={currentPage === totalPages - 1}
-                className={`text-sm px-2 py-1 rounded ${
-                  currentPage === totalPages - 1 
-                    ? 'text-gray-400 cursor-not-allowed' 
-                    : 'text-blue-600 hover:bg-blue-50'
-                }`}
+                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Next page"
               >
-                Next
+                ▶
               </button>
-            </div>
+            )}
           </div>
         </div>
       )}

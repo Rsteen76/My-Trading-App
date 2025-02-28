@@ -2,22 +2,23 @@ import React from "react";
 
 function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
   return (
-    <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Today's Trades</h2>
+    <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold">Today's Trades</h2>
         <button
           onClick={onNextDay}
-          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-bold"
+          className="bg-blue-500 hover:bg-blue-600 text-white py-1.5 sm:py-2 px-4 sm:px-6 rounded-lg font-bold text-sm sm:text-base w-full sm:w-auto"
         >
           Next Day
         </button>
       </div>
       
-      <div className="overflow-x-auto">
+      {/* Desktop view - Table */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="min-w-full bg-white">
           <thead>
             <tr className="bg-gray-100 border-b">
-              <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700 w-24">#</th>
+              <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700 w-16">#</th>
               <th className="py-3 px-4 text-left font-semibold text-sm text-gray-700">Outcome</th>
               <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700">P/L</th>
               <th className="py-3 px-4 text-center font-semibold text-sm text-gray-700">Actions</th>
@@ -96,6 +97,81 @@ function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
             ))}
           </tbody>
         </table>
+      </div>
+      
+      {/* Mobile view - Card layout */}
+      <div className="sm:hidden space-y-4">
+        {tradesToday.map((trade, index) => (
+          <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+            <div className="flex justify-between items-center mb-2">
+              <span className="inline-block bg-gray-200 text-gray-800 font-bold rounded-full w-7 h-7 flex items-center justify-center">
+                {index + 1}
+              </span>
+              
+              {trade !== null ? (
+                <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                  trade.outcome === "win" 
+                    ? "bg-green-100 text-green-800" 
+                    : trade.outcome === "breakEven"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-red-100 text-red-800"
+                }`}>
+                  {trade.outcome === "win" 
+                    ? "Win" 
+                    : trade.outcome === "breakEven"
+                      ? "Break Even"
+                      : "Loss"}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-500 font-medium">Pending</span>
+              )}
+            </div>
+            
+            {trade !== null && (
+              <div className="mb-2">
+                <span className={`font-medium ${
+                  trade.outcome === "win" 
+                    ? "text-green-600" 
+                    : trade.outcome === "breakEven"
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                }`}>
+                  {trade.outcome === "win" 
+                    ? `+$${trade.profit}` 
+                    : trade.outcome === "breakEven"
+                      ? "$0.00"
+                      : `-$${trade.loss}`}
+                </span>
+                {trade?.note && (
+                  <p className="text-xs text-gray-500 mt-1">{trade.note}</p>
+                )}
+              </div>
+            )}
+            
+            {trade === null && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                <button
+                  onClick={() => onTradeOutcome(index, "win")}
+                  className="bg-green-500 hover:bg-green-600 text-white py-1.5 px-0 rounded text-xs font-medium"
+                >
+                  Win
+                </button>
+                <button
+                  onClick={() => onTradeOutcome(index, "loss")}
+                  className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-0 rounded text-xs font-medium"
+                >
+                  Loss
+                </button>
+                <button
+                  onClick={() => onTradeOutcome(index, "breakEven")}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-0 rounded text-xs font-medium"
+                >
+                  B/E
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       
       {tradesToday.length === 0 && (
