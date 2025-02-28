@@ -45,7 +45,7 @@ function RulesCard() {
     }`}>
       <div className="p-4">
         <div className="relative mb-4">
-          <h2 className="text-3xl font-bold text-gray-800 text-center">Pre-Trade Checklist</h2>
+        <h2 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2">Pre-Trade Checklist</h2>
           <button
             onClick={handleReset}
             className="absolute right-0 top-0 text-sm px-3 py-1 text-gray-600 hover:text-gray-800 transition-colors"

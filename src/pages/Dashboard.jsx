@@ -293,10 +293,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-gray-100 to-gray-200 p-8">
-      <h1 className="text-5xl font-bold text-center text-gray-800 mb-10">
-        Trading Dashboard
-      </h1>
-
+      {/* Current Stats Card */}
       <CurrentStatsCard
         balance={balance}
         contractsForTrade={contractsForTrade}
@@ -327,9 +324,14 @@ function Dashboard() {
         onNextDay={handleNextDay}
         settings={settings}
       />
-
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/*Summary Stats Card*/}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 pb-6 gap-8">
         <SummaryStatsCard summaryStats={summaryStats} />
+        
+      </div>
+      
+      {/* Historical Chart */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 gap-8">     
         <HistoricalChart historicalData={historicalData} />
       </div>
 
