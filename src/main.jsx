@@ -1,17 +1,13 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";  // Change to HashRouter
 import App from "./App";
-import "./index.css"; // Tailwind or your chosen CSS
-
-// Use the same basename logic from your index.jsx
-const basename = process.env.NODE_ENV === 'production' ? '/my-trading-app' : '/';
+import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter basename={basename}>
+    <HashRouter>  {/* Remove basename, HashRouter doesn't need it */}
       <App />
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>
 );
