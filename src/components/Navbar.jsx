@@ -1,15 +1,22 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Helper function to check if a path is active
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset ALL app data? This will clear your trade history, settings, and rules.")) {
       // Clear all app-related data from localStorage
       localStorage.removeItem("tradesLogged");
       localStorage.removeItem("tradeSettings");
-      localStorage.removeItem("tradingRules"); // Add this line to clear rules
+      localStorage.removeItem("tradingRules");
+      localStorage.removeItem("rulesCheckedStatus"); // Also clear this if you're using it
       
       // Navigate to Planner page after resetting
       navigate("/planner");
@@ -38,33 +45,25 @@ function Navbar() {
         <div className="flex-1 flex justify-center gap-8">
           <Link 
             to="/" 
-            className={({ isActive }) => 
-              isActive ? "underline" : "hover:underline"
-            }
+            className={isActive("/") ? "underline" : "hover:underline"}
           >
             Dashboard
           </Link>
           <Link 
             to="/planner" 
-            className={({ isActive }) => 
-              isActive ? "underline" : "hover:underline"
-            }
+            className={isActive("/planner") ? "underline" : "hover:underline"}
           >
             Planner
           </Link>
           <Link 
             to="/rules" 
-            className={({ isActive }) => 
-              isActive ? "underline" : "hover:underline"
-            }
+            className={isActive("/rules") ? "underline" : "hover:underline"}
           >
             Rules
           </Link>
           <Link 
             to="/summary" 
-            className={({ isActive }) => 
-              isActive ? "underline" : "hover:underline"
-            }
+            className={isActive("/summary") ? "underline" : "hover:underline"}
           >
             Summary
           </Link>
