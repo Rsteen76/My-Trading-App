@@ -5,17 +5,16 @@ function Navbar() {
   const navigate = useNavigate();
 
   const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset ALL app data? This will clear your trade history and settings.")) {
+    if (window.confirm("Are you sure you want to reset ALL app data? This will clear your trade history, settings, and rules.")) {
       // Clear all app-related data from localStorage
       localStorage.removeItem("tradesLogged");
       localStorage.removeItem("tradeSettings");
+      localStorage.removeItem("tradingRules"); // Add this line to clear rules
       
       // Navigate to Planner page after resetting
-      // Update the navigation to work with HashRouter
       navigate("/planner");
       
       // Force page reload to ensure all components re-initialize with fresh state
-      // Consider using a different approach to reset state without full page reload
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -52,6 +51,14 @@ function Navbar() {
             }
           >
             Planner
+          </Link>
+          <Link 
+            to="/rules" 
+            className={({ isActive }) => 
+              isActive ? "underline" : "hover:underline"
+            }
+          >
+            Rules
           </Link>
           <Link 
             to="/summary" 

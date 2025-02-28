@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 function Planner() {
-  const navigate = useNavigate();
   // Default values
   const [mode, setMode] = useState("trades"); // "trades" or "fixedStop"
   const [tradesPerDay, setTradesPerDay] = useState(3);
@@ -47,9 +45,6 @@ function Planner() {
     localStorage.setItem("tradeSettings", JSON.stringify(settings));
     setSavedMessage("Preferences saved!");
     setTimeout(() => setSavedMessage(""), 2000);
-
-    // Navigate to the dashboard after saving settings
-    navigate('/dashboard');
   };
 
   return (

@@ -4,6 +4,7 @@ import TrackerSection from "../components/dashboard/TrackerSection";
 import SummaryStatsCard from "../components/dashboard/SummaryStatsCard";
 import HistoricalChart from "../components/dashboard/HistoricalChart";
 import PlannerStatsCard from "../components/dashboard/PlannerStatsCard"; // Import PlannerStatsCard
+import RulesCard from "../components/dashboard/RulesCard"; // Import RulesCard
 
 function Dashboard() {
   const [settings, setSettings] = useState(null);
@@ -227,6 +228,9 @@ function Dashboard() {
         stopLossRemaining={stopLossRemaining}
         isFixedStop={settings.mode === "fixedStop"}
       />
+
+      {/* Rules Card */}
+      <RulesCard settings={settings} />
 
       {settings.mode === "fixedStop" && stopLossRemaining <= 0 && (
         <div className="text-center text-red-500 font-bold text-2xl mb-4">

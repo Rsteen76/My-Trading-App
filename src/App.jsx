@@ -1,9 +1,10 @@
+// src/App.jsx
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Planner from "./pages/Planner";
-import Tracker from "./pages/Tracker";
+import Rules from "./pages/Rules"; // Import from pages
 import SummaryPage from "./pages/SummaryPage";
 import Dashboard from "./pages/Dashboard";
 
@@ -16,7 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/planner" element={<Planner />} />
-          <Route path="/tracker" element={<Tracker />} />
+          <Route path="/rules" element={<Rules />} />
           <Route path="/summary" element={<SummaryPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
