@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import CurrentStatsCard from "../components/dashboard/CurrentStatsCard";
 import TrackerSection from "../components/dashboard/TrackerSection";
 import SummaryStatsCard from "../components/dashboard/SummaryStatsCard";
@@ -19,22 +21,31 @@ function Dashboard() {
 
   // Load initial settings and historical data
   useEffect(() => {
-    const storedSettings = JSON.parse(localStorage.getItem("tradeSettings"));
-    if (storedSettings) {
-      setSettings(storedSettings);
-      const initialBalance = Number(storedSettings.initialBalance) || 500;
-      setBalance(initialBalance);
-      setDailyStartBalance(initialBalance);
+    const fetchSettings = async () => {
+      const storedSettings = JSON.parse(localStorage.getItem("tradeSettings"));
+      if (storedSettings) {
+        setSettings(storedSettings);
+        const initialBalance = Number(storedSettings.initialBalance) || 500;
+        setBalance(initialBalance);
+        setDailyStartBalance(initialBalance);
 
-      if (storedSettings.mode === "fixedStop") {
-        setTradesToday([]);
-        setStopLossRemaining(Number(storedSettings.fixedStopLoss) || 0);
-      } else {
-        setTradesToday(Array(Number(storedSettings.tradesPerDay) || 3).fill(null));
+        if (storedSettings.mode === "fixedStop") {
+          setTradesToday([]);
+          setStopLossRemaining(Number(storedSettings.fixedStopLoss) || 0);
+        } else {
+          setTradesToday(Array(Number(storedSettings.tradesPerDay) || 3).fill(null));
+        }
       }
-    }
-    const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
-    aggregateHistoricalData(storedTrades);
+    };
+
+    const fetchTrades = async () => {
+      const querySnapshot = await getDocs(collection(db, "tradesLogged"));
+      const trades = querySnapshot.docs.map(doc => doc.data());
+      aggregateHistoricalData(trades);
+    };
+
+    fetchSettings();
+    fetchTrades();
   }, []);
 
   // Calculate contracts for trade based on daily starting balance and settings
@@ -72,13 +83,14 @@ function Dashboard() {
     }
   }, [dailyStartBalance, settings]);
 
-useEffect(() => {
-  if (settings && settings.mode === "fixedStop") {
-    setTradesToday([null]);
-  } else if (settings && settings.mode !== "fixedStop") {
-    setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
-  }
-}, [currentDay, settings]);
+  useEffect(() => {
+    if (settings && settings.mode === "fixedStop") {
+      setTradesToday([null]);
+    } else if (settings && settings.mode !== "fixedStop") {
+      setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
+    }
+  }, [currentDay, settings]);
+
   // Aggregates historical data
   const aggregateHistoricalData = (trades) => {
     const dayMap = {};
@@ -126,10 +138,11 @@ useEffect(() => {
   };
 
   // Saves each trade log
-  const saveTradeLog = (trade) => {
+  const saveTradeLog = async (trade) => {
     const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
     const updatedTrades = [...storedTrades, trade];
     localStorage.setItem("tradesLogged", JSON.stringify(updatedTrades));
+    await addDoc(collection(db, "tradesLogged"), trade);
     aggregateHistoricalData(updatedTrades);
   };
 
@@ -331,6 +344,7 @@ useEffect(() => {
         onTradeOutcome={handleTradeOutcome}
         onNextDay={handleNextDay}
         settings={settings}
+        stopLossRemaining={stopLossRemaining}
       />
       {/*Summary Stats Card*/}
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 pb-6 gap-8">
