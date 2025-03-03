@@ -1,12 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
+function TrackerSection({ 
+  tradesToday, 
+  onTradeOutcome, 
+  onNextDay, 
+  settings,
+  stopLossRemaining 
+}) {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isStopLossHit, setIsStopLossHit] = useState(false);
+
+  useEffect(() => {
+    // Check if stop loss has been hit
+    setIsStopLossHit(stopLossRemaining <= 0);
+  }, [stopLossRemaining]);
 
   return (
     <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
         <h2 className="text-xl sm:text-2xl font-bold">Today's Trades</h2>
+        {isStopLossHit && (
+          <div className="text-red-600 font-bold text-sm sm:text-base w-full sm:w-auto">
+            Stop Loss Hit - Cannot Enter More Trades
+          </div>
+        )}
         <button
           onClick={onNextDay}
           className="bg-blue-500 hover:bg-blue-600 text-white py-1.5 sm:py-2 px-4 sm:px-6 rounded-lg font-bold text-sm sm:text-base w-full sm:w-auto"
@@ -21,7 +38,7 @@ function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg font-bold text-sm w-full"
         >
-          {isCollapsed ? "Show Stats" : "Hide Stats"}
+          {isCollapsed ? "Show Trades" : "Hide Trades"}
         </button>
       </div>
 
@@ -100,19 +117,28 @@ function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
                     <div className="flex justify-center space-x-2">
                       <button
                         onClick={() => onTradeOutcome(index, "win")}
-                        className="bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm"
+                        className={`bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded text-sm ${
+                          isStopLossHit ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        disabled={isStopLossHit}
                       >
                         Win
                       </button>
                       <button
                         onClick={() => onTradeOutcome(index, "loss")}
-                        className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm"
+                        className={`bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm ${
+                          isStopLossHit ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        disabled={isStopLossHit}
                       >
                         Loss
                       </button>
                       <button
                         onClick={() => onTradeOutcome(index, "breakEven")}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm"
+                        className={`bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm ${
+                          isStopLossHit ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        disabled={isStopLossHit}
                       >
                         B/E
                       </button>
@@ -184,22 +210,22 @@ function TrackerSection({ tradesToday, onTradeOutcome, onNextDay, settings }) {
             )}
 
             {trade === null && (
-              <div className="flex justify-between items-center mt-2">
+              <div className="grid grid-cols-3 gap-2 mt-2">
                 <button
                   onClick={() => onTradeOutcome(index, "win")}
-                  className="bg-green-500 hover:bg-green-600 text-white py-1.5 px-2 rounded text-xs font-medium"
+                  className="bg-green-500 hover:bg-green-600 text-white py-1.5 px-0 rounded text-xs font-medium"
                 >
                   Win
                 </button>
                 <button
                   onClick={() => onTradeOutcome(index, "loss")}
-                  className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-2 rounded text-xs font-medium"
+                  className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-0 rounded text-xs font-medium"
                 >
                   Loss
                 </button>
                 <button
                   onClick={() => onTradeOutcome(index, "breakEven")}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-2 rounded text-xs font-medium"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-0 rounded text-xs font-medium"
                 >
                   B/E
                 </button>

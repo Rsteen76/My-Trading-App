@@ -72,6 +72,13 @@ function Dashboard() {
     }
   }, [dailyStartBalance, settings]);
 
+useEffect(() => {
+  if (settings && settings.mode === "fixedStop") {
+    setTradesToday([null]);
+  } else if (settings && settings.mode !== "fixedStop") {
+    setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
+  }
+}, [currentDay, settings]);
   // Aggregates historical data
   const aggregateHistoricalData = (trades) => {
     const dayMap = {};
