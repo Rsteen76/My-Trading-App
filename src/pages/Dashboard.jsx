@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { collection, getDocs, addDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../../firebase";
 import CurrentStatsCard from "../components/dashboard/CurrentStatsCard";
 import TrackerSection from "../components/dashboard/TrackerSection";
 import SummaryStatsCard from "../components/dashboard/SummaryStatsCard";
