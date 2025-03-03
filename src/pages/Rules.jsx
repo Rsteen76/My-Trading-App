@@ -1,36 +1,77 @@
 // src/pages/Rules.jsx
 import React, { useState, useEffect } from "react";
+import { auth, db } from "../../firebase"; // Import auth and db
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Import Firestore functions
 
 function Rules() {
-  const [rules, setRules] = useState([""]);
+  // State for the trading rules - an array of strings
+  const [rules, setRules] = useState([""]); // Start with one empty rule
   const [savedMessage, setSavedMessage] = useState("");
 
-  // Load rules from localStorage on mount
+  // Load rules from localStorage or Firebase on mount
   useEffect(() => {
-    const storedRules = JSON.parse(localStorage.getItem("tradingRules"));
-    if (storedRules) {
-      setRules(storedRules);
-    }
+    const fetchRules = async () => {
+      if (auth.currentUser) {
+        // User is logged in, load from Firestore
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          if (userData.tradingRules) {
+            setRules(userData.tradingRules); // Load rules from Firestore
+          } else {
+            setRules([""]); // Ensure one empty rule if there are none
+          }
+        }
+      } else {
+        // Not logged in, load from localStorage
+        const storedRules = JSON.parse(localStorage.getItem("tradingRules"));
+        if (storedRules) {
+          setRules(storedRules); // Load rules from localStorage
+        } else {
+          setRules([""]); // Ensure one empty rule if there are none
+        }
+      }
+    };
+
+    fetchRules();
   }, []);
 
+  // Save rules to localStorage and Firebase
+  const handleSave = async () => {
+    // Filter out empty rules before saving
+    const filteredRules = rules.filter(rule => rule.trim() !== "");
+    
+    if (auth.currentUser) {
+      // User is logged in, save to Firestore
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      await setDoc(userRef, { tradingRules: filteredRules }, { merge: true });
+    }
+
+    localStorage.setItem("tradingRules", JSON.stringify(filteredRules));
+    setSavedMessage("Rules saved!");
+    setTimeout(() => setSavedMessage(""), 2000);
+  };
+
+  // Handle changes to a rule's text
   const handleRuleChange = (index, value) => {
     const newRules = [...rules];
     newRules[index] = value;
     setRules(newRules);
   };
 
+  // Add a new empty rule
   const handleAddRule = () => {
     if (rules.length < 5) {
       setRules([...rules, ""]);
     }
   };
 
-  const handleSave = () => {
-    // Filter out empty rules before saving
-    const filteredRules = rules.filter(rule => rule.trim() !== "");
-    localStorage.setItem("tradingRules", JSON.stringify(filteredRules));
-    setSavedMessage("Rules saved!");
-    setTimeout(() => setSavedMessage(""), 2000);
+  // Remove a rule
+  const handleRemoveRule = (index) => {
+    const newRules = [...rules];
+    newRules.splice(index, 1);
+    setRules(newRules);
   };
 
   return (
@@ -43,12 +84,10 @@ function Rules() {
           </div>
         )}
         
+        {/* Display the rules */}
         <div className="space-y-4">
           {rules.map((rule, index) => (
-            <div key={index} className="mb-4">
-              <label className="block font-medium mb-1">
-                Rule {index + 1}
-              </label>
+            <div key={index} className="mb-4 flex items-center">
               <textarea
                 className="w-full p-2 border border-gray-300 rounded resize-none"
                 rows="2"
@@ -56,10 +95,19 @@ function Rules() {
                 onChange={(e) => handleRuleChange(index, e.target.value)}
                 placeholder={`Enter rule ${index + 1}`}
               />
+              {rules.length > 1 && (
+                <button
+                  onClick={() => handleRemoveRule(index)}
+                  className="ml-4 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ))}
         </div>
 
+        {/* Button to add a new rule */}
         {rules.length < 5 && (
           <button
             onClick={handleAddRule}
@@ -69,6 +117,7 @@ function Rules() {
           </button>
         )}
 
+        {/* Save button */}
         <button
           onClick={handleSave}
           className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { collection, getDocs, addDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import CurrentStatsCard from "../components/dashboard/CurrentStatsCard";
 import TrackerSection from "../components/dashboard/TrackerSection";
 import SummaryStatsCard from "../components/dashboard/SummaryStatsCard";
@@ -10,6 +10,7 @@ import RulesCard from "../components/dashboard/RulesCard";
 
 function Dashboard() {
   const [settings, setSettings] = useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [balance, setBalance] = useState(0);
   const [dailyStartBalance, setDailyStartBalance] = useState(0);
   const [currentDay, setCurrentDay] = useState(1);
@@ -33,14 +34,16 @@ function Dashboard() {
           setTradesToday([]);
           setStopLossRemaining(Number(storedSettings.fixedStopLoss) || 0);
         } else {
-          setTradesToday(Array(Number(storedSettings.tradesPerDay) || 3).fill(null));
+          setTradesToday(
+            Array(Number(storedSettings.tradesPerDay) || 3).fill(null)
+          );
         }
       }
     };
 
     const fetchTrades = async () => {
       const querySnapshot = await getDocs(collection(db, "tradesLogged"));
-      const trades = querySnapshot.docs.map(doc => doc.data());
+      const trades = querySnapshot.docs.map((doc) => doc.data());
       aggregateHistoricalData(trades);
     };
 
@@ -53,21 +56,21 @@ function Dashboard() {
     if (settings && dailyStartBalance > 0) {
       // Get risk percent as a decimal (e.g., 2% becomes 0.02)
       const riskPercentDecimal = Number(settings.riskPercent) / 100;
-      
+
       // Calculate daily risk amount in dollars
       const dailyRiskAmount = dailyStartBalance * riskPercentDecimal;
-      
+
       // Calculate risk per contract in dollars
       const stopLossPoints = Number(settings.stopLossPoints);
       const pointValue = Number(settings.dollarValueOfPoints);
       const riskPerContract = stopLossPoints * pointValue;
-      
+
       // Calculate number of contracts (floor to be conservative)
       let contracts = 0;
       if (riskPerContract > 0) {
         contracts = Math.floor(dailyRiskAmount / riskPerContract);
       }
-      
+
       // For debugging
       console.log({
         dailyStartBalance,
@@ -76,9 +79,9 @@ function Dashboard() {
         stopLossPoints,
         pointValue,
         riskPerContract,
-        contractsCalculated: contracts
+        contractsCalculated: contracts,
       });
-      
+
       setContractsForTrade(contracts);
     }
   }, [dailyStartBalance, settings]);
@@ -97,14 +100,14 @@ function Dashboard() {
     trades.forEach((trade) => {
       const day = trade.day;
       if (!dayMap[day]) {
-        dayMap[day] = { 
-          day, 
-          profit: 0, 
+        dayMap[day] = {
+          day,
+          profit: 0,
           trades: [],
-          breakEvenCount: 0 
+          breakEvenCount: 0,
         };
       }
-      
+
       // Only add profit/loss for non-break-even trades
       if (trade.isBreakEven) {
         // Count break-even trades separately
@@ -114,24 +117,24 @@ function Dashboard() {
         const profit = trade.newBalance - trade.oldBalance;
         dayMap[day].profit += profit;
       }
-      
+
       dayMap[day].trades.push(trade);
     });
-    
+
     const daysArray = Object.values(dayMap).sort((a, b) => a.day - b.day);
     setHistoricalData(daysArray);
 
     const totalProfit = daysArray.reduce((sum, d) => sum + d.profit, 0);
     const totalTrades = trades.length;
-    const breakEvenTrades = trades.filter(t => t.isBreakEven).length;
+    const breakEvenTrades = trades.filter((t) => t.isBreakEven).length;
     const totalDays = daysArray.length;
     const averageProfit = totalDays > 0 ? totalProfit / totalDays : 0;
-    
+
     setSummaryStats({
       totalProfit,
       averageProfit,
       totalTrades,
-      lossTrades: trades.filter(t => t.outcome === "loss").length,
+      lossTrades: trades.filter((t) => t.outcome === "loss").length,
       breakEvenTrades,
       totalDays,
     });
@@ -139,11 +142,21 @@ function Dashboard() {
 
   // Saves each trade log
   const saveTradeLog = async (trade) => {
+    // NEW: Get the current date
+    const today = new Date();
+    const tradeDate = today.toLocaleDateString();
+
     const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
     const updatedTrades = [...storedTrades, trade];
     localStorage.setItem("tradesLogged", JSON.stringify(updatedTrades));
-    await addDoc(collection(db, "tradesLogged"), trade);
-    aggregateHistoricalData(updatedTrades);
+    const tradeToSave = {
+      ...trade,
+      tradeDate, // Add the date to the trade object
+      userId: auth.currentUser ? auth.currentUser.uid : null,
+    };
+    await addDoc(collection(db, "tradesLogged"), tradeToSave); 
+    aggregateHistoricalData(updatedTrades); 
+    //updateTradesToday(updatedTrades); 
   };
 
   if (!settings) {
@@ -161,16 +174,16 @@ function Dashboard() {
       // Handle break even case
       if (outcome === "breakEven") {
         // For break even, we don't change the balance
-        tradeResult = { 
-          outcome: "breakEven", 
+        tradeResult = {
+          outcome: "breakEven",
           profit: 0,
-          loss: 0
+          loss: 0,
         };
-        
+
         const updatedTrades = [...tradesToday];
         updatedTrades[tradeIndex] = tradeResult;
         setTradesToday(updatedTrades);
-        
+
         const tradeLog = {
           day: currentDay,
           tradeNum: tradeIndex + 1,
@@ -178,16 +191,16 @@ function Dashboard() {
           contracts: contractsForTrade,
           oldBalance,
           newBalance,
-          isBreakEven: true
+          isBreakEven: true,
         };
-        
+
         saveTradeLog(tradeLog);
-        
+
         // Add another trade if stop loss has not been reached
         if (stopLossRemaining > 0) {
           setTradesToday((prevTrades) => [...prevTrades, null]);
         }
-        
+
         return;
       } else if (outcome === "win") {
         const profit =
@@ -198,7 +211,8 @@ function Dashboard() {
       } else if (outcome === "loss") {
         const loss =
           contractsForTrade *
-          (Number(settings.stopLossPoints) * Number(settings.dollarValueOfPoints));
+          (Number(settings.stopLossPoints) *
+            Number(settings.dollarValueOfPoints));
         newBalance -= loss;
         setStopLossRemaining(stopLossRemaining - loss);
         tradeResult = { outcome, loss };
@@ -219,7 +233,7 @@ function Dashboard() {
         newBalance,
         profit: tradeResult.profit,
         loss: tradeResult.loss,
-        isBreakEven: false
+        isBreakEven: false,
       };
       saveTradeLog(tradeLog);
 
@@ -240,16 +254,16 @@ function Dashboard() {
     // Handle break even case for trades mode
     if (outcome === "breakEven") {
       // For break even, we don't change the balance
-      tradeResult = { 
-        outcome: "breakEven", 
+      tradeResult = {
+        outcome: "breakEven",
         profit: 0,
-        loss: 0
+        loss: 0,
       };
-      
+
       const updatedTrades = [...tradesToday];
       updatedTrades[tradeIndex] = tradeResult;
       setTradesToday(updatedTrades);
-      
+
       const tradeLog = {
         day: currentDay,
         tradeNum: tradeIndex + 1,
@@ -257,9 +271,9 @@ function Dashboard() {
         contracts: contractsForTrade,
         oldBalance,
         newBalance,
-        isBreakEven: true
+        isBreakEven: true,
       };
-      
+
       saveTradeLog(tradeLog);
       return;
     } else if (contractsForTrade > 0) {
@@ -272,7 +286,8 @@ function Dashboard() {
       } else if (outcome === "loss") {
         const loss =
           contractsForTrade *
-          (Number(settings.stopLossPoints) * Number(settings.dollarValueOfPoints));
+          (Number(settings.stopLossPoints) *
+            Number(settings.dollarValueOfPoints));
         newBalance -= loss;
         tradeResult = { outcome, loss };
       }
@@ -294,7 +309,7 @@ function Dashboard() {
       newBalance,
       profit: tradeResult.profit,
       loss: tradeResult.loss,
-      isBreakEven: false
+      isBreakEven: false,
     };
     saveTradeLog(tradeLog);
   };
@@ -303,12 +318,12 @@ function Dashboard() {
   const handleNextDay = () => {
     setCurrentDay(currentDay + 1);
     setDailyStartBalance(balance); // Update daily start balance for the new day
-    
+
     if (settings.mode !== "fixedStop") {
       setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
     } else {
       setStopLossRemaining(Number(settings.fixedStopLoss) || 0);
-      setTradesToday([null]); 
+      setTradesToday([null]);
     }
   };
 
@@ -333,11 +348,13 @@ function Dashboard() {
         </div>
       )}
 
-      {settings.mode !== "fixedStop" && tradesToday.filter(trade => trade !== null).length >= settings.tradesPerDay && (
-        <div className="text-center text-red-500 font-bold text-2xl mb-4">
-          YOU ARE DONE FOR THE DAY
-        </div>
-      )}
+      {settings.mode !== "fixedStop" &&
+        tradesToday.filter((trade) => trade !== null).length >=
+          settings.tradesPerDay && (
+          <div className="text-center text-red-500 font-bold text-2xl mb-4">
+            YOU ARE DONE FOR THE DAY
+          </div>
+        )}
 
       <TrackerSection
         tradesToday={tradesToday}
@@ -349,11 +366,10 @@ function Dashboard() {
       {/*Summary Stats Card*/}
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 pb-6 gap-8">
         <SummaryStatsCard summaryStats={summaryStats} />
-        
       </div>
-      
+
       {/* Historical Chart */}
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 gap-8">     
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 gap-8">
         <HistoricalChart historicalData={historicalData} />
       </div>
 

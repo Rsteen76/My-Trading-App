@@ -1,11 +1,13 @@
 // src/App.jsx
 import React from "react";
-import { Routes, Route, Link } from "react-router-dom"; // Make sure Link is imported
+import { Routes, Route, Link } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Planner from "./pages/Planner";
 import Rules from "./pages/Rules";
 import SummaryPage from "./pages/SummaryPage";
 import Dashboard from "./pages/Dashboard";
+import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
 
 function NotFound() {
   return (
@@ -23,17 +25,35 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-900 text-white">
       <Navbar />
-
+      
       <main className="flex-grow max-w-4xl mx-auto w-full p-4">
         <Routes>
-          <Route path="/" element={<Dashboard />} /> {/* Removed # */}
-          <Route path="/planner" element={<Planner />} />
-          <Route path="/rules" element={<Rules />} />
-          <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/auth" element={<Auth />} />
+          {/* Protect these routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/planner" element={
+            <ProtectedRoute>
+              <Planner />
+            </ProtectedRoute>
+          } />
+          <Route path="/rules" element={
+            <ProtectedRoute>
+              <Rules />
+            </ProtectedRoute>
+          } />
+          <Route path="/summary" element={
+            <ProtectedRoute>
+              <SummaryPage />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-
+      
       <footer className="bg-gray-800 p-4 text-center">
         <p>© 2025 My Trading App</p>
       </footer>

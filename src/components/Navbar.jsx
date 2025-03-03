@@ -1,11 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { auth } from "../../firebase"; // Import auth
+import { signOut } from "firebase/auth";
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, []);
+
   // Helper function to check if a path is active
   const isActive = (path) => {
     return location.pathname === path;
@@ -36,6 +47,16 @@ function Navbar() {
   // Close mobile menu when a link is clicked
   const handleLinkClick = () => {
     setIsMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigate("/auth"); // Redirect to the auth page after sign out
+    } catch (error) {
+      console.error("Error signing out:", error);
+      // Handle error (e.g., display an error message)
+    }
   };
 
   return (
@@ -79,6 +100,26 @@ function Navbar() {
             >
               Summary
             </Link>
+            {!user && (
+              <Link
+                to="/auth"
+                className={`${
+                  isActive("/auth")
+                    ? "text-blue-400"
+                    : "hover:text-gray-300"
+                } transition`}
+              >
+                Login
+              </Link>
+            )}
+            {user && (
+              <button
+                onClick={handleSignOut}
+                className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded transition"
+              >
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Right: Reset Button */}
@@ -154,6 +195,27 @@ function Navbar() {
               >
                 Summary
               </Link>
+              {!user && (
+              <Link
+                to="/auth"
+                className={`${
+                  isActive("/auth")
+                    ? "text-blue-400"
+                    : "hover:text-gray-300"
+                } transition`}
+                onClick={handleLinkClick}
+              >
+                Login
+              </Link>
+            )}
+            {user && (
+              <button
+                onClick={handleSignOut}
+                className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded transition w-full"
+              >
+                Logout
+              </button>
+            )}
               <div className="pt-2 border-t border-gray-700">
                 <button
                   onClick={handleReset}
