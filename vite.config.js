@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  base: '/My-Trading-App/',
+  //base: '/My-Trading-App/',
   build: {
     sourcemap: false,
   },
