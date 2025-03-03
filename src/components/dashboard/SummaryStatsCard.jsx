@@ -1,87 +1,122 @@
 // src/components/dashboard/SummaryStatsCard.jsx
-import React, { useState, useEffect } from "react";
-import HistoricalChart from "./HistoricalChart";
+import React, { useState } from "react";
 
 function SummaryStatsCard({ summaryStats }) {
-  const [open, setOpen] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-      setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
-    return <p>Loading...</p>;
-  }
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   if (!summaryStats) {
     return (
-      <div className="bg-white text-gray-900 p-6 rounded shadow">
-        <h3 className="text-lg font-semibold mb-4">Summary Statistics</h3>
-        <p>No data to display.</p>
+      <div className="bg-white rounded-lg shadow-lg p-5 animate-pulse">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Historical Summary</h2>
+        <div className="h-24 bg-gray-200 rounded"></div>
       </div>
     );
   }
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(value);
+  };
+
   return (
-    <div className="bg-white text-gray-900 p-6 rounded shadow">
-      <h3 className="text-lg font-semibold mb-4">Summary Statistics</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <p>
-            Total Profit:{" "}
-            <span className="font-bold">
-              ${summaryStats.totalProfit.toFixed(2)}
-            </span>
-          </p>
-          <p>
-            Average Profit per Day:{" "}
-            <span className="font-bold">
-              ${summaryStats.averageProfit.toFixed(2)}
-            </span>
-          </p>
-        </div>
-        <div>
-          <p>
-            Total Trades:{" "}
-            <span className="font-bold">{summaryStats.totalTrades}</span>
-          </p>
-          <p>
-            Break-Even Trades:{" "}
-            <span className="font-bold">{summaryStats.breakEvenTrades}</span>
-          </p>
-          <p>
-            Loss Trades:{" "}
-            <span className="font-bold">{summaryStats.lossTrades}</span>
-          </p>
-          <p>
-            Total Days:{" "}
-            <span className="font-bold">{summaryStats.totalDays}</span>
-          </p>
-        </div>
-      </div>
-      {/* Historical Data Chart */}
-      <div className="border-t border-gray-300 pt-4">
-        {/* Toggle Details */}
-        <div className="flex justify-between items-center mb-4">
-          <h4
-            className={`font-semibold text-blue-500 cursor-pointer ${
-              hovered ? "underline" : ""
-            }`}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            onClick={() => setOpen(!open)}
-          >
-            {open ? "Hide Trade Details" : "Show Trade Details"}
-          </h4>
-          {open && summaryStats.totalTrades > 0 && (
-            <div>
-              <HistoricalChart historicalData={[]} />
-            </div>
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Header with toggle button */}
+      <div className="px-5 py-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Historical Summary</h2>
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          className="text-gray-500 hover:text-gray-700 focus:outline-none"
+        >
+          {isCollapsed ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
           )}
-        </div>
+        </button>
       </div>
+      
+      {/* Stats Grid - Collapsible */}
+      {!isCollapsed && (
+        <div className="p-5 border-t">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {/* Total Profit */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Total Profit</span>
+              <span className={`text-2xl font-bold ${summaryStats.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summaryStats.totalProfit)}
+              </span>
+            </div>
+            
+            {/* Average Daily P/L */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Avg. Daily P/L</span>
+              <span className={`text-2xl font-bold ${summaryStats.averageProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summaryStats.averageProfit)}
+              </span>
+            </div>
+            
+            {/* Trading Days */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Trading Days</span>
+              <span className="text-2xl font-bold text-gray-800">{summaryStats.totalDays}</span>
+            </div>
+            
+            {/* Win Trades */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Win Trades</span>
+              <span className="text-2xl font-bold text-green-600">
+                {summaryStats.totalTrades - summaryStats.lossTrades - summaryStats.breakEvenTrades}
+              </span>
+            </div>
+            
+            {/* Loss Trades */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Loss Trades</span>
+              <span className="text-2xl font-bold text-red-600">{summaryStats.lossTrades}</span>
+            </div>
+            
+            {/* Break Even Trades */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Break Even</span>
+              <span className="text-2xl font-bold text-yellow-600">{summaryStats.breakEvenTrades}</span>
+            </div>
+            
+            {/* Win Rate */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Win Rate</span>
+              <span className="text-2xl font-bold text-blue-600">
+                {summaryStats.totalTrades > 0 
+                  ? `${Math.round((summaryStats.totalTrades - summaryStats.lossTrades - summaryStats.breakEvenTrades) / summaryStats.totalTrades * 100)}%`
+                  : '0%'
+                }
+              </span>
+            </div>
+            
+            {/* Total Trades */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Total Trades</span>
+              <span className="text-2xl font-bold text-gray-800">{summaryStats.totalTrades}</span>
+            </div>
+            
+            {/* Average Trades/Day */}
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-500 mb-1">Avg. Trades/Day</span>
+              <span className="text-2xl font-bold text-gray-800">
+                {summaryStats.totalDays > 0 
+                  ? (summaryStats.totalTrades / summaryStats.totalDays).toFixed(1)
+                  : '0'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

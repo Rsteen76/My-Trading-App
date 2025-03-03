@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
@@ -10,120 +11,155 @@ import RulesCard from "../components/dashboard/RulesCard";
 
 function Dashboard() {
   const [settings, setSettings] = useState(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [balance, setBalance] = useState(0);
   const [dailyStartBalance, setDailyStartBalance] = useState(0);
-  const [currentDay, setCurrentDay] = useState(1);
   const [tradesToday, setTradesToday] = useState([]);
   const [historicalData, setHistoricalData] = useState([]);
   const [summaryStats, setSummaryStats] = useState(null);
   const [contractsForTrade, setContractsForTrade] = useState(0);
   const [stopLossRemaining, setStopLossRemaining] = useState(0);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Load initial settings and historical data
+  // Load settings on component mount
   useEffect(() => {
-    const fetchSettings = async () => {
+    const loadSettings = () => {
       const storedSettings = JSON.parse(localStorage.getItem("tradeSettings"));
       if (storedSettings) {
+        console.log("Settings loaded:", storedSettings);
         setSettings(storedSettings);
-        const initialBalance = Number(storedSettings.initialBalance) || 500;
-        setBalance(initialBalance);
-        setDailyStartBalance(initialBalance);
+        setBalance(Number(storedSettings.initialBalance) || 500);
+        setDailyStartBalance(Number(storedSettings.initialBalance) || 500);
 
         if (storedSettings.mode === "fixedStop") {
-          setTradesToday([]);
           setStopLossRemaining(Number(storedSettings.fixedStopLoss) || 0);
-        } else {
-          setTradesToday(
-            Array(Number(storedSettings.tradesPerDay) || 3).fill(null)
-          );
         }
       }
     };
-
-    const fetchTrades = async () => {
-      const querySnapshot = await getDocs(collection(db, "tradesLogged"));
-      const trades = querySnapshot.docs.map((doc) => doc.data());
-      aggregateHistoricalData(trades);
-    };
-
-    fetchSettings();
-    fetchTrades();
+    
+    loadSettings();
   }, []);
 
-  // Calculate contracts for trade based on daily starting balance and settings
+  // Load historical data from all trades
+  useEffect(() => {
+    const loadHistoricalData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "tradesLogged"));
+        const allTrades = querySnapshot.docs.map(doc => doc.data());
+        
+        // Update local storage with Firebase data
+        localStorage.setItem("tradesLogged", JSON.stringify(allTrades));
+        
+        // Update historical stats
+        aggregateHistoricalData(allTrades);
+      } catch (error) {
+        console.error("Error loading historical data:", error);
+        
+        // Fallback to local storage if Firebase fails
+        const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+        aggregateHistoricalData(storedTrades);
+      }
+    };
+    
+    loadHistoricalData();
+  }, []);
+
+  // CRITICAL EFFECT: Initialize trades for current date based on settings
+  useEffect(() => {
+    if (!settings) return;
+    
+    console.log("Initializing trades for date:", currentDate.toLocaleDateString());
+    
+    const initializeTradesForCurrentDate = () => {
+      // Get completed trades for today
+      const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+      const completedTrades = storedTrades.filter(
+        trade => trade.tradeDate === currentDate.toLocaleDateString()
+      );
+      
+      if (settings.mode === "fixedStop") {
+        // Fixed stop mode: show one pending trade if stop loss isn't hit
+        if (stopLossRemaining > 0) {
+          setTradesToday([...completedTrades, null]);
+        } else {
+          setTradesToday(completedTrades);
+        }
+      } 
+      else if (settings.mode === "fixedTrades") {
+        // Fixed trades mode: show the correct number of trades based on settings
+        const maxTrades = parseInt(settings.tradesPerDay, 10) || 0;
+        console.log(`Fixed trades mode: ${completedTrades.length}/${maxTrades} completed`);
+        
+        if (maxTrades <= 0) {
+          setTradesToday([]);
+          return;
+        }
+        
+        // Create array with completed trades + enough null values to reach maxTrades
+        const pendingTradesCount = Math.max(0, maxTrades - completedTrades.length);
+        
+        // IMPORTANT: Create the array in one go, not incrementally
+        const newTradesArray = [
+          ...completedTrades,
+          ...Array(pendingTradesCount).fill(null)
+        ];
+        
+        console.log("Setting trades array:", newTradesArray);
+        setTradesToday(newTradesArray);
+      }
+    };
+    
+    // Immediately initialize trades when this effect runs
+    initializeTradesForCurrentDate();
+    
+  }, [settings, currentDate, stopLossRemaining]);
+
+  // Calculate contracts for trade based on risk settings
   useEffect(() => {
     if (settings && dailyStartBalance > 0) {
-      // Get risk percent as a decimal (e.g., 2% becomes 0.02)
       const riskPercentDecimal = Number(settings.riskPercent) / 100;
-
-      // Calculate daily risk amount in dollars
       const dailyRiskAmount = dailyStartBalance * riskPercentDecimal;
-
-      // Calculate risk per contract in dollars
       const stopLossPoints = Number(settings.stopLossPoints);
       const pointValue = Number(settings.dollarValueOfPoints);
       const riskPerContract = stopLossPoints * pointValue;
-
-      // Calculate number of contracts (floor to be conservative)
+      
       let contracts = 0;
       if (riskPerContract > 0) {
         contracts = Math.floor(dailyRiskAmount / riskPerContract);
       }
-
-      // For debugging
-      console.log({
-        dailyStartBalance,
-        riskPercentDecimal,
-        dailyRiskAmount,
-        stopLossPoints,
-        pointValue,
-        riskPerContract,
-        contractsCalculated: contracts,
-      });
-
+      
       setContractsForTrade(contracts);
     }
   }, [dailyStartBalance, settings]);
 
-  useEffect(() => {
-    if (settings && settings.mode === "fixedStop") {
-      setTradesToday([null]);
-    } else if (settings && settings.mode !== "fixedStop") {
-      setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
-    }
-  }, [currentDay, settings]);
-
-  // Aggregates historical data
+  // Process historical data for charts and statistics
   const aggregateHistoricalData = (trades) => {
     const dayMap = {};
+    
     trades.forEach((trade) => {
-      const day = trade.day;
-      if (!dayMap[day]) {
-        dayMap[day] = {
-          day,
+      const tradeDate = trade.tradeDate;
+      if (!dayMap[tradeDate]) {
+        dayMap[tradeDate] = {
+          day: tradeDate,
           profit: 0,
           trades: [],
           breakEvenCount: 0,
         };
       }
-
-      // Only add profit/loss for non-break-even trades
+      
       if (trade.isBreakEven) {
-        // Count break-even trades separately
-        dayMap[day].breakEvenCount = (dayMap[day].breakEvenCount || 0) + 1;
+        dayMap[tradeDate].breakEvenCount = (dayMap[tradeDate].breakEvenCount || 0) + 1;
       } else {
-        // For regular trades, calculate profit
         const profit = trade.newBalance - trade.oldBalance;
-        dayMap[day].profit += profit;
+        dayMap[tradeDate].profit += profit;
       }
-
-      dayMap[day].trades.push(trade);
+      
+      dayMap[tradeDate].trades.push(trade);
     });
-
+    
     const daysArray = Object.values(dayMap).sort((a, b) => a.day - b.day);
     setHistoricalData(daysArray);
 
+    // Calculate summary stats
     const totalProfit = daysArray.reduce((sum, d) => sum + d.profit, 0);
     const totalTrades = trades.length;
     const breakEvenTrades = trades.filter((t) => t.isBreakEven).length;
@@ -140,190 +176,127 @@ function Dashboard() {
     });
   };
 
-  // Saves each trade log
+  // Save a trade to both Firestore and local storage
   const saveTradeLog = async (trade) => {
-    // NEW: Get the current date
-    const today = new Date();
-    const tradeDate = today.toLocaleDateString();
-
-    const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
-    const updatedTrades = [...storedTrades, trade];
-    localStorage.setItem("tradesLogged", JSON.stringify(updatedTrades));
     const tradeToSave = {
       ...trade,
-      tradeDate, // Add the date to the trade object
+      tradeDate: currentDate.toLocaleDateString(),
       userId: auth.currentUser ? auth.currentUser.uid : null,
     };
-    await addDoc(collection(db, "tradesLogged"), tradeToSave); 
-    aggregateHistoricalData(updatedTrades); 
-    //updateTradesToday(updatedTrades); 
+    
+    try {
+      // Save to Firestore
+      await addDoc(collection(db, "tradesLogged"), tradeToSave);
+      
+      // Update local storage
+      const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+      const updatedTrades = [...storedTrades, tradeToSave];
+      localStorage.setItem("tradesLogged", JSON.stringify(updatedTrades));
+      
+      // Update historical data
+      aggregateHistoricalData(updatedTrades);
+      
+      return tradeToSave;
+    } catch (error) {
+      console.error("Error saving trade:", error);
+      
+      // Still update local storage if Firestore fails
+      const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+      const updatedTrades = [...storedTrades, tradeToSave];
+      localStorage.setItem("tradesLogged", JSON.stringify(updatedTrades));
+      
+      return tradeToSave;
+    }
   };
 
-  if (!settings) {
-    return <p className="text-center py-8">Loading settings...</p>;
-  }
-
-  // Handler for each trade outcome
-  const handleTradeOutcome = (tradeIndex, outcome) => {
-    // If we're in fixedStop mode
-    if (settings.mode === "fixedStop") {
-      const oldBalance = balance;
-      let newBalance = balance;
-      let tradeResult = {};
-
-      // Handle break even case
-      if (outcome === "breakEven") {
-        // For break even, we don't change the balance
-        tradeResult = {
-          outcome: "breakEven",
-          profit: 0,
-          loss: 0,
-        };
-
-        const updatedTrades = [...tradesToday];
-        updatedTrades[tradeIndex] = tradeResult;
-        setTradesToday(updatedTrades);
-
-        const tradeLog = {
-          day: currentDay,
-          tradeNum: tradeIndex + 1,
-          outcome: "breakEven",
-          contracts: contractsForTrade,
-          oldBalance,
-          newBalance,
-          isBreakEven: true,
-        };
-
-        saveTradeLog(tradeLog);
-
-        // Add another trade if stop loss has not been reached
-        if (stopLossRemaining > 0) {
-          setTradesToday((prevTrades) => [...prevTrades, null]);
-        }
-
-        return;
-      } else if (outcome === "win") {
-        const profit =
-          contractsForTrade *
-          (Number(settings.target) * Number(settings.dollarValueOfPoints));
-        newBalance += profit;
-        tradeResult = { outcome, profit };
-      } else if (outcome === "loss") {
-        const loss =
-          contractsForTrade *
-          (Number(settings.stopLossPoints) *
-            Number(settings.dollarValueOfPoints));
-        newBalance -= loss;
-        setStopLossRemaining(stopLossRemaining - loss);
-        tradeResult = { outcome, loss };
-      }
-
-      setBalance(newBalance);
-
-      const updatedTrades = [...tradesToday];
-      updatedTrades[tradeIndex] = tradeResult;
-      setTradesToday(updatedTrades);
-
-      const tradeLog = {
-        day: currentDay,
-        tradeNum: tradeIndex + 1,
-        outcome,
-        contracts: contractsForTrade,
-        oldBalance,
-        newBalance,
-        profit: tradeResult.profit,
-        loss: tradeResult.loss,
-        isBreakEven: false,
-      };
-      saveTradeLog(tradeLog);
-
-      // Add another trade if stop loss has not been reached
-      if (stopLossRemaining > 0) {
-        setTradesToday((prevTrades) => [...prevTrades, null]);
-      }
-
-      return;
-    }
-
-    // "trades" mode logic
-    if (tradesToday[tradeIndex] !== null) return;
-    const oldBalance = balance;
-    let newBalance = balance;
-    let tradeResult = {};
-
-    // Handle break even case for trades mode
-    if (outcome === "breakEven") {
-      // For break even, we don't change the balance
-      tradeResult = {
-        outcome: "breakEven",
-        profit: 0,
-        loss: 0,
-      };
-
-      const updatedTrades = [...tradesToday];
-      updatedTrades[tradeIndex] = tradeResult;
-      setTradesToday(updatedTrades);
-
-      const tradeLog = {
-        day: currentDay,
-        tradeNum: tradeIndex + 1,
-        outcome: "breakEven",
-        contracts: contractsForTrade,
-        oldBalance,
-        newBalance,
-        isBreakEven: true,
-      };
-
-      saveTradeLog(tradeLog);
-      return;
-    } else if (contractsForTrade > 0) {
-      if (outcome === "win") {
-        const profit =
-          contractsForTrade *
-          (Number(settings.target) * Number(settings.dollarValueOfPoints));
-        newBalance += profit;
-        tradeResult = { outcome, profit };
-      } else if (outcome === "loss") {
-        const loss =
-          contractsForTrade *
-          (Number(settings.stopLossPoints) *
-            Number(settings.dollarValueOfPoints));
-        newBalance -= loss;
-        tradeResult = { outcome, loss };
-      }
-    } else {
-      tradeResult = { outcome, note: "No trade (insufficient risk budget)" };
-    }
-
-    setBalance(newBalance);
-    const updatedTrades = [...tradesToday];
-    updatedTrades[tradeIndex] = tradeResult;
-    setTradesToday(updatedTrades);
-
-    const tradeLog = {
-      day: currentDay,
-      tradeNum: tradeIndex + 1,
+  // Handle trade outcome (win, loss, breakEven)
+  const handleTradeOutcome = async (tradeIndex, outcome) => {
+    console.log(`Processing outcome for trade ${tradeIndex}: ${outcome}`);
+    
+    // Create the trade object
+    const updatedTrade = {
       outcome,
-      contracts: contractsForTrade,
-      oldBalance,
-      newBalance,
-      profit: tradeResult.profit,
-      loss: tradeResult.loss,
-      isBreakEven: false,
+      profit: 0,
+      loss: 0,
+      isBreakEven: false
     };
-    saveTradeLog(tradeLog);
+    
+    // Calculate profit/loss
+    if (outcome !== "breakEven") {
+      if (contractsForTrade > 0) {
+        if (outcome === "win") {
+          updatedTrade.profit = contractsForTrade * (Number(settings.target) * Number(settings.dollarValueOfPoints));
+        } else if (outcome === "loss") {
+          updatedTrade.loss = contractsForTrade * (Number(settings.stopLossPoints) * Number(settings.dollarValueOfPoints));
+        }
+      }
+    } else {
+      updatedTrade.isBreakEven = true;
+    }
+
+    // Update balance
+    const newBalance = balance + updatedTrade.profit - updatedTrade.loss;
+    setBalance(newBalance);
+    
+    // Update stop loss remaining if in fixedStop mode and this was a loss
+    if (settings.mode === "fixedStop" && outcome === "loss") {
+      const newStopLossRemaining = stopLossRemaining - updatedTrade.loss;
+      setStopLossRemaining(newStopLossRemaining);
+    }
+    
+    // Save the trade
+    const tradeToSave = {
+      ...updatedTrade,
+      oldBalance: balance,
+      newBalance
+    };
+    
+    await saveTradeLog(tradeToSave);
+    
+    // Re-initialize trades for today based on updated data
+    const storedTrades = JSON.parse(localStorage.getItem("tradesLogged")) || [];
+    const completedTrades = storedTrades.filter(
+      trade => trade.tradeDate === currentDate.toLocaleDateString()
+    );
+    
+    if (settings.mode === "fixedStop") {
+      // For fixedStop mode
+      if (stopLossRemaining - updatedTrade.loss > 0) {
+        setTradesToday([...completedTrades, null]);
+      } else {
+        setTradesToday(completedTrades);
+      }
+    } 
+    else if (settings.mode === "fixedTrades") {
+      // For fixedTrades mode
+      const maxTrades = parseInt(settings.tradesPerDay, 10) || 0;
+      const pendingTradesCount = Math.max(0, maxTrades - completedTrades.length);
+      
+      setTradesToday([
+        ...completedTrades,
+        ...Array(pendingTradesCount).fill(null)
+      ]);
+    }
   };
 
-  // Next Day
-  const handleNextDay = () => {
-    setCurrentDay(currentDay + 1);
-    setDailyStartBalance(balance); // Update daily start balance for the new day
+  // Handle date navigation
+  const handlePreviousDay = () => {
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(currentDate.getDate() - 1);
+    setCurrentDate(yesterday);
+  };
 
-    if (settings.mode !== "fixedStop") {
-      setTradesToday(Array(Number(settings.tradesPerDay)).fill(null));
-    } else {
-      setStopLossRemaining(Number(settings.fixedStopLoss) || 0);
-      setTradesToday([null]);
+  const handleNextDay = () => {
+    const tomorrow = new Date(currentDate);
+    tomorrow.setDate(currentDate.getDate() + 1);
+    setCurrentDate(tomorrow);
+  };
+
+  // Force initialize fixed trades if needed
+  const forceInitFixedTrades = () => {
+    if (settings?.mode === "fixedTrades") {
+      const maxTrades = parseInt(settings.tradesPerDay, 10) || 0;
+      setTradesToday(Array(maxTrades).fill(null));
     }
   };
 
@@ -334,35 +307,47 @@ function Dashboard() {
         balance={balance}
         contractsForTrade={contractsForTrade}
         tradesToday={tradesToday}
-        tradesPerDay={settings.tradesPerDay}
+        tradesPerDay={settings?.tradesPerDay}
         stopLossRemaining={stopLossRemaining}
-        isFixedStop={settings.mode === "fixedStop"}
+        isFixedStop={settings?.mode === "fixedStop"}
       />
 
       {/* Rules Card */}
       <RulesCard settings={settings} />
 
-      {settings.mode === "fixedStop" && stopLossRemaining <= 0 && (
+      {settings && settings.mode === "fixedStop" && stopLossRemaining <= 0 && (
         <div className="text-center text-red-500 font-bold text-2xl mb-4">
           YOU ARE DONE FOR THE DAY
         </div>
       )}
 
-      {settings.mode !== "fixedStop" &&
+      {settings && settings.mode !== "fixedStop" &&
         tradesToday.filter((trade) => trade !== null).length >=
-          settings.tradesPerDay && (
-          <div className="text-center text-red-500 font-bold text-2xl mb-4">
-            YOU ARE DONE FOR THE DAY
-          </div>
-        )}
+          parseInt(settings?.tradesPerDay || "0", 10) && (
+        <div className="text-center text-red-500 font-bold text-2xl mb-4">
+          YOU ARE DONE FOR THE DAY
+        </div>
+      )}
+
+      {settings?.mode === "fixedTrades" && tradesToday.length === 0 && (
+        <button 
+          onClick={forceInitFixedTrades}
+          className="w-full py-3 bg-blue-500 text-white font-bold rounded mb-4 hover:bg-blue-600"
+        >
+          Create Trades for Today
+        </button>
+      )}
 
       <TrackerSection
         tradesToday={tradesToday}
         onTradeOutcome={handleTradeOutcome}
         onNextDay={handleNextDay}
+        onPreviousDay={handlePreviousDay}
         settings={settings}
         stopLossRemaining={stopLossRemaining}
+        currentDate={currentDate}
       />
+
       {/*Summary Stats Card*/}
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-1 pb-6 gap-8">
         <SummaryStatsCard summaryStats={summaryStats} />
